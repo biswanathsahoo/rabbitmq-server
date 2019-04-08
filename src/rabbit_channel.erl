@@ -489,7 +489,6 @@ init([Channel, ReaderPid, WriterPid, ConnPid, ConnName, Protocol, User, VHost,
               end,
     MaxMessageSize = get_max_message_size(),
     ConsumerTimeout = get_consumer_timeout(),
-    rabbit_log:info("consumer timeout ~w", [ConsumerTimeout]),
     State = #ch{cfg = #conf{state = starting,
                             protocol = Protocol,
                             channel = Channel,
@@ -859,10 +858,8 @@ handle_info(tick, State0 = #ch{cfg = #conf{channel = Channel,
                              end,
             case SupportsCancel of
                 false ->
-                    %% basic.get - there is no mechanims so we just crash the
-                    %% channel
                     Ex = rabbit_misc:amqp_error(precondition_failed,
-                                                "basic.get ack timed out on channel ~w",
+                                                "consumer ack timed out on channel ~w",
                                                 [Channel], none),
                     handle_exception(Ex, State0);
                 true ->
@@ -1912,9 +1909,6 @@ handle_consuming_queue_down_or_eol(QRef,
 cancel_consumer(CTag, QName,
                 State = #ch{cfg = #conf{capabilities = Capabilities},
                             consumer_mapping = CMap}) ->
-    rabbit_log_channel:info("Consumer ~s capabilities ~w",
-                            [rabbit_data_coercion:to_binary(CTag),
-                             Capabilities]),
     case rabbit_misc:table_lookup(
            Capabilities, <<"consumer_cancel_notify">>) of
         {bool, true} -> ok = send(#'basic.cancel'{consumer_tag = CTag,
